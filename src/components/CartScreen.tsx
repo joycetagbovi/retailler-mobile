@@ -139,7 +139,6 @@ export function CartScreen({
           cart.map(item => (
             <Card key={item.id} className="p-4">
               <div className="flex gap-3">
-                <div className="w-20 h-20 bg-[#f6f6f7] rounded-lg flex-shrink-0 border border-[#e1e3e5]" />
                 
                 <div className="flex-1 min-w-0">
                   <h3 className="text-gray-900 mb-1">{item.name}</h3>
@@ -229,7 +228,7 @@ export function CartScreen({
             {totalDiscount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Discount:</span>
-                <span>-₦{totalDiscount.toFixed(2)}</span>
+                <span>-���{totalDiscount.toFixed(2)}</span>
               </div>
             )}
 
