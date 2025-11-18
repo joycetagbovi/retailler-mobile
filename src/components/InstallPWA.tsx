@@ -25,18 +25,35 @@ export function InstallPWA() {
   const [isStandalone, setIsStandalone] = useState(false);
   const [serviceWorkerReady, setServiceWorkerReady] = useState(false);
   const [manifestAvailable, setManifestAvailable] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
 
   useEffect(() => {
+    // Debug logging
+    const debug: string[] = [];
+    
     // Check if already installed (standalone mode)
     const isStandaloneMode =
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true;
     setIsStandalone(isStandaloneMode);
+    debug.push(`Standalone: ${isStandaloneMode}`);
 
     // Check if iOS
     const iOS =
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(iOS);
+    debug.push(`iOS: ${iOS}`);
+    
+    // Check HTTPS
+    const isHTTPS = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    debug.push(`HTTPS: ${isHTTPS}`);
+    
+    // Check service worker support
+    const hasSW = 'serviceWorker' in navigator;
+    debug.push(`SW Support: ${hasSW}`);
+    
+    setDebugInfo(debug.join(' | '));
+    console.log('PWA Install Debug:', debug.join(' | '));
 
     // Check if service worker is registered
     if ('serviceWorker' in navigator) {
@@ -62,6 +79,7 @@ export function InstallPWA() {
 
     // Listen for beforeinstallprompt event (Android/Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('beforeinstallprompt event fired!');
       e.preventDefault();
       console.log('beforeinstallprompt event fired');
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -71,6 +89,7 @@ export function InstallPWA() {
 
     // Listen for successful installation
     window.addEventListener('appinstalled', () => {
+      console.log('App installed successfully!');
       toast.success('App installed successfully!');
       setDeferredPrompt(null);
       setShowDialog(false);
