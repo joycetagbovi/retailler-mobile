@@ -20,6 +20,7 @@ export function InstallPWA() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [showAndroidDialog, setShowAndroidDialog] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [serviceWorkerReady, setServiceWorkerReady] = useState(false);
@@ -73,6 +74,7 @@ export function InstallPWA() {
       toast.success('App installed successfully!');
       setDeferredPrompt(null);
       setShowDialog(false);
+      setShowAndroidDialog(false);
     });
 
     // Check periodically if prompt becomes available
@@ -128,42 +130,31 @@ export function InstallPWA() {
       return;
     }
 
-    // If no deferred prompt yet, but PWA is ready, provide instructions
-    if (!deferredPrompt && serviceWorkerReady && manifestAvailable) {
-      toast.info('Please use browser menu: Menu (⋮) → Install App', {
-        description: 'Or look for "Add to Home Screen" option',
-        duration: 5000,
-      });
+    // If no deferred prompt, show Android installation dialog with instructions
+    if (!deferredPrompt) {
+      // Check PWA criteria first
+      const issues: string[] = [];
+      if (!serviceWorkerReady) {
+        issues.push('Service worker not registered');
+      }
+      if (!manifestAvailable) {
+        issues.push('Manifest file not found');
+      }
+
+      if (issues.length > 0) {
+        toast.error(`Installation unavailable: ${issues.join(', ')}`);
+        console.log('PWA Installation Issues:', {
+          serviceWorkerReady,
+          manifestAvailable,
+          hasDeferredPrompt: !!deferredPrompt,
+          isIOS,
+          isStandalone,
+        });
+      } else {
+        // Show Android installation dialog instead of toast
+        setShowAndroidDialog(true);
+      }
       return;
-    }
-
-    // If no deferred prompt, check PWA criteria and show helpful message
-    const issues: string[] = [];
-
-    if (!serviceWorkerReady) {
-      issues.push('Service worker not registered');
-    }
-
-    if (!manifestAvailable) {
-      issues.push('Manifest file not found');
-    }
-
-    if (issues.length > 0) {
-      toast.error(`Installation unavailable: ${issues.join(', ')}`);
-      console.log('PWA Installation Issues:', {
-        serviceWorkerReady,
-        manifestAvailable,
-        hasDeferredPrompt: !!deferredPrompt,
-        isIOS,
-        isStandalone,
-      });
-    } else {
-      // Show manual installation instructions
-      toast.info('Please use your browser menu to install the app', {
-        description:
-          'Look for "Install App" or "Add to Home Screen" in the browser menu (⋮)',
-        duration: 5000,
-      });
     }
   };
 
@@ -243,6 +234,56 @@ export function InstallPWA() {
           </div>
 
           <Button onClick={() => setShowDialog(false)} className='w-full'>
+            Got it
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Android Installation Instructions Dialog */}
+      <Dialog
+        open={showAndroidDialog && !isIOS}
+        onOpenChange={setShowAndroidDialog}
+      >
+        <DialogContent className='max-w-sm'>
+          <DialogHeader>
+            <DialogTitle>Install Supermart POS</DialogTitle>
+            <DialogDescription>
+              Install this app on your Android device for quick access and
+              offline functionality.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className='bg-[#f6f6f7] p-4 rounded text-sm space-y-3'>
+            <p className='text-[#202223] font-medium'>To install on Android:</p>
+            <ol className='list-decimal list-inside space-y-3 text-[#6d7175]'>
+              <li>
+                Tap the <strong>menu button</strong> (⋮) in the{' '}
+                <strong>top right corner</strong> of your browser
+              </li>
+              <li>
+                Look for{' '}
+                <strong className='text-[#008060]'>"Install app"</strong> or{' '}
+                <strong className='text-[#008060]'>"Add to Home screen"</strong>{' '}
+                in the menu
+              </li>
+              <li>
+                Tap it and then tap <strong>"Install"</strong> to confirm
+              </li>
+            </ol>
+            <div className='bg-white p-3 rounded border border-[#e1e3e5] mt-3'>
+              <p className='text-[#202223] text-xs font-medium mb-1'>💡 Tip:</p>
+              <p className='text-[#6d7175] text-xs'>
+                The install option appears when the app meets PWA requirements.
+                Once installed, the app will work offline and appear on your
+                home screen.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => setShowAndroidDialog(false)}
+            className='w-full'
+          >
             Got it
           </Button>
         </DialogContent>
