@@ -69,17 +69,35 @@ export default function App() {
 
   const { isOnline, syncStatus } = useOfflineSync();
 
-  // Check if running on desktop
+  // Check if running on desktop (not tablet)
   useEffect(() => {
     const checkDesktop = () => {
-      const isDesktopScreen = window.innerWidth >= 768; // 768px is typically tablet/desktop breakpoint
+      const width = window.innerWidth;
+
+      // Check if device has touch capability (tablets and phones have touch)
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+      // Check if it's a mobile user agent (tablets and phones)
+      const isMobileUA =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+
+      // Desktop detection: large screen (> 1024px) AND no touch AND not mobile UA
+      // This allows tablets (which have touch) but blocks desktop screens
+      const isDesktopScreen = width > 1024 && !hasTouch && !isMobileUA;
+
       setIsDesktop(isDesktopScreen);
     };
 
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
+    window.addEventListener('orientationchange', checkDesktop);
 
-    return () => window.removeEventListener('resize', checkDesktop);
+    return () => {
+      window.removeEventListener('resize', checkDesktop);
+      window.removeEventListener('orientationchange', checkDesktop);
+    };
   }, []);
 
   // Check if app is running in standalone mode and show splash screen
@@ -287,8 +305,8 @@ export default function App() {
           <div className='text-sm text-[#6d7175]'>
             <p className='mb-2'>For desktop users:</p>
             <p>
-              Please use a mobile device or resize your browser window to a
-              mobile size (less than 768px wide).
+              Please use a mobile device or tablet. Tablets and phones are
+              supported.
             </p>
           </div>
         </div>

@@ -100,29 +100,40 @@ export function InstallPWA() {
       return;
     }
 
-    // Check if we have the deferred prompt
+    // Check if we have the deferred prompt (Android/Chrome)
     if (deferredPrompt) {
       try {
-        // Show the install prompt
+        console.log('Triggering install prompt...');
+        // Show the install prompt programmatically
         await deferredPrompt.prompt();
 
         // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
+        console.log('User choice:', outcome);
 
         if (outcome === 'accepted') {
-          toast.success('Installing app...');
+          toast.success('App is being installed...');
         } else {
           toast.info('Installation cancelled');
         }
       } catch (error) {
         console.error('Error showing install prompt:', error);
         toast.error(
-          'Failed to show install prompt. Please try using browser menu.'
+          'Failed to show install prompt. Please try using browser menu (⋮ → Install App).'
         );
       }
 
       // Clear the deferredPrompt
       setDeferredPrompt(null);
+      return;
+    }
+
+    // If no deferred prompt yet, but PWA is ready, provide instructions
+    if (!deferredPrompt && serviceWorkerReady && manifestAvailable) {
+      toast.info('Please use browser menu: Menu (⋮) → Install App', {
+        description: 'Or look for "Add to Home Screen" option',
+        duration: 5000,
+      });
       return;
     }
 
@@ -150,7 +161,8 @@ export function InstallPWA() {
       // Show manual installation instructions
       toast.info('Please use your browser menu to install the app', {
         description:
-          'Look for "Install App" or "Add to Home Screen" in the browser menu',
+          'Look for "Install App" or "Add to Home Screen" in the browser menu (⋮)',
+        duration: 5000,
       });
     }
   };
@@ -171,7 +183,11 @@ export function InstallPWA() {
         disabled={!canInstall}
       >
         <Download className='w-4 h-4 mr-2' />
-        {isIOS ? 'Install App' : deferredPrompt ? 'Install App' : 'Install App'}
+        {isIOS
+          ? 'Show Install Instructions'
+          : deferredPrompt
+          ? 'Install App Now'
+          : 'Install App'}
       </Button>
 
       {!canInstall && (
@@ -179,6 +195,12 @@ export function InstallPWA() {
           <AlertCircle className='w-3 h-3' />
           <span>Waiting for installation to become available...</span>
         </div>
+      )}
+
+      {deferredPrompt && !isIOS && (
+        <p className='mt-2 text-xs text-center text-[#6d7175]'>
+          Click the button above to install directly (no browser menu needed)
+        </p>
       )}
 
       {/* iOS Installation Instructions Dialog */}
@@ -193,23 +215,31 @@ export function InstallPWA() {
           </DialogHeader>
 
           <div className='bg-[#f6f6f7] p-4 rounded text-sm space-y-3'>
-            <p className='text-[#202223] font-medium'>To install:</p>
-            <ol className='list-decimal list-inside space-y-2 text-[#6d7175]'>
+            <p className='text-[#202223] font-medium'>To install on iPhone:</p>
+            <ol className='list-decimal list-inside space-y-3 text-[#6d7175]'>
               <li>
-                Tap the Share button{' '}
-                <span className='inline-block text-lg'>⎙</span> at the bottom of
-                Safari
+                Look at the <strong>bottom center</strong> of Safari and tap the{' '}
+                <span className='inline-flex items-center justify-center w-6 h-6 rounded bg-[#008060] text-white text-xs font-bold'>
+                  ↑
+                </span>{' '}
+                <strong>Share</strong> button
               </li>
               <li>
-                Scroll down and tap <strong>"Add to Home Screen"</strong>
+                Scroll down in the share menu and tap{' '}
+                <strong className='text-[#008060]'>"Add to Home Screen"</strong>
               </li>
               <li>
-                Tap <strong>"Add"</strong> to confirm
+                Tap <strong>"Add"</strong> in the top right to confirm
               </li>
             </ol>
-            <p className='text-[#6d7175] text-xs mt-3'>
-              The app will appear on your home screen and work offline.
-            </p>
+            <div className='bg-white p-3 rounded border border-[#e1e3e5] mt-3'>
+              <p className='text-[#202223] text-xs font-medium mb-1'>💡 Tip:</p>
+              <p className='text-[#6d7175] text-xs'>
+                Unfortunately, iOS Safari doesn't allow automatic installation.
+                You must use the Share menu. Once installed, the app will work
+                offline and appear on your home screen.
+              </p>
+            </div>
           </div>
 
           <Button onClick={() => setShowDialog(false)} className='w-full'>
