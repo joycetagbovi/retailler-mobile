@@ -14,7 +14,15 @@ import { Toaster } from './components/ui/sonner';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { useLocalStorage } from './hooks/useLocalStorage';
 
-export type Screen = 'login' | 'home' | 'cart' | 'payment' | 'receipt' | 'dashboard' | 'sync' | 'customer';
+export type Screen =
+  | 'login'
+  | 'home'
+  | 'cart'
+  | 'payment'
+  | 'receipt'
+  | 'dashboard'
+  | 'sync'
+  | 'customer';
 
 export interface User {
   id: string;
@@ -50,21 +58,39 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [user, setUser] = useLocalStorage<User | null>('pos-user', null);
   const [cart, setCart] = useLocalStorage<CartItem[]>('pos-cart', []);
-  const [selectedCustomer, setSelectedCustomer] = useLocalStorage<Customer | null>('pos-customer', null);
-  const [heldCarts, setHeldCarts] = useLocalStorage<{ id: string; cart: CartItem[]; timestamp: number }[]>('pos-held-carts', []);
+  const [selectedCustomer, setSelectedCustomer] =
+    useLocalStorage<Customer | null>('pos-customer', null);
+  const [heldCarts, setHeldCarts] = useLocalStorage<
+    { id: string; cart: CartItem[]; timestamp: number }[]
+  >('pos-held-carts', []);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [showSplash, setShowSplash] = useState(false);
-  
+  const [isDesktop, setIsDesktop] = useState(false);
+
   const { isOnline, syncStatus } = useOfflineSync();
+
+  // Check if running on desktop
+  useEffect(() => {
+    const checkDesktop = () => {
+      const isDesktopScreen = window.innerWidth >= 768; // 768px is typically tablet/desktop breakpoint
+      setIsDesktop(isDesktopScreen);
+    };
+
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   // Check if app is running in standalone mode and show splash screen
   useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                         (window.navigator as any).standalone === true;
-    
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+
     // Only show splash on first load in standalone mode
     const hasShownSplash = sessionStorage.getItem('splash-shown');
-    
+
     if (isStandalone && !hasShownSplash) {
       setShowSplash(true);
       sessionStorage.setItem('splash-shown', 'true');
@@ -94,13 +120,13 @@ export default function App() {
   };
 
   const handleAddToCart = (item: CartItem) => {
-    const existingItem = cart.find(i => i.id === item.id);
+    const existingItem = cart.find((i) => i.id === item.id);
     if (existingItem) {
-      setCart(cart.map(i => 
-        i.id === item.id 
-          ? { ...i, quantity: i.quantity + item.quantity }
-          : i
-      ));
+      setCart(
+        cart.map((i) =>
+          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
+        )
+      );
     } else {
       setCart([...cart, item]);
     }
@@ -115,7 +141,7 @@ export default function App() {
       const heldCart = {
         id: `held-${Date.now()}`,
         cart: cart,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       setHeldCarts([...heldCarts, heldCart]);
       setCart([]);
@@ -124,10 +150,10 @@ export default function App() {
   };
 
   const handleResumeCart = (heldCartId: string) => {
-    const heldCart = heldCarts.find(h => h.id === heldCartId);
+    const heldCart = heldCarts.find((h) => h.id === heldCartId);
     if (heldCart) {
       setCart(heldCart.cart);
-      setHeldCarts(heldCarts.filter(h => h.id !== heldCartId));
+      setHeldCarts(heldCarts.filter((h) => h.id !== heldCartId));
       setCurrentScreen('cart');
     }
   };
@@ -159,7 +185,7 @@ export default function App() {
     switch (currentScreen) {
       case 'login':
         return <LoginScreen onLogin={handleLogin} />;
-      
+
       case 'home':
         return (
           <POSHome
@@ -173,7 +199,7 @@ export default function App() {
             onNavigateToCustomer={() => setCurrentScreen('customer')}
           />
         );
-      
+
       case 'cart':
         return (
           <CartScreen
@@ -186,7 +212,7 @@ export default function App() {
             onBack={() => setCurrentScreen('home')}
           />
         );
-      
+
       case 'payment':
         return (
           <PaymentScreen
@@ -197,7 +223,7 @@ export default function App() {
             onBack={() => setCurrentScreen('cart')}
           />
         );
-      
+
       case 'receipt':
         return (
           <ReceiptScreen
@@ -206,7 +232,7 @@ export default function App() {
             onViewDashboard={() => setCurrentScreen('dashboard')}
           />
         );
-      
+
       case 'dashboard':
         return (
           <DashboardScreen
@@ -214,14 +240,10 @@ export default function App() {
             onBack={() => setCurrentScreen('home')}
           />
         );
-      
+
       case 'sync':
-        return (
-          <SyncLogsScreen
-            onBack={() => setCurrentScreen('home')}
-          />
-        );
-      
+        return <SyncLogsScreen onBack={() => setCurrentScreen('home')} />;
+
       case 'customer':
         return (
           <CustomerLookup
@@ -229,15 +251,54 @@ export default function App() {
             onBack={() => setCurrentScreen('home')}
           />
         );
-      
+
       default:
         return null;
     }
   };
 
+  // Show desktop restriction message
+  if (isDesktop) {
+    return (
+      <div className='min-h-screen bg-[#f6f6f7] flex items-center justify-center p-4'>
+        <div className='max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center'>
+          <div className='mb-6'>
+            <svg
+              className='w-24 h-24 mx-auto text-[#008060]'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z'
+              />
+            </svg>
+          </div>
+          <h1 className='text-2xl font-bold text-[#202223] mb-4'>
+            Mobile App Only
+          </h1>
+          <p className='text-base text-[#6d7175] mb-6'>
+            This application is designed for mobile devices only. Please access
+            it from your smartphone or tablet for the best experience.
+          </p>
+          <div className='text-sm text-[#6d7175]'>
+            <p className='mb-2'>For desktop users:</p>
+            <p>
+              Please use a mobile device or resize your browser window to a
+              mobile size (less than 768px wide).
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (currentScreen === 'login') {
     return (
-      <div className="min-h-screen bg-[#f6f6f7]">
+      <div className='min-h-screen bg-[#f6f6f7]'>
         {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
         {renderScreen()}
         <Toaster />
@@ -246,18 +307,16 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className='min-h-screen bg-gray-50'>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       <OfflineIndicator isOnline={isOnline} syncStatus={syncStatus} />
       {renderScreen()}
-      {currentScreen !== 'login' && (
-        <NavigationBar
-          currentScreen={currentScreen}
-          onNavigate={handleNavigate}
-          onLogout={handleLogout}
-          cartItemsCount={cart.length}
-        />
-      )}
+      <NavigationBar
+        currentScreen={currentScreen}
+        onNavigate={handleNavigate}
+        onLogout={handleLogout}
+        cartItemsCount={cart.length}
+      />
       <Toaster />
     </div>
   );
